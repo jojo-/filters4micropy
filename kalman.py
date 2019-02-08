@@ -5,7 +5,6 @@ such as a sensor. It then updates this probability distribution based on the val
 from the source, providing a smoothing effect in a similar way to a moving average filter.
 It works in two stages, first prediction, where it guesses what the next value from the sensor
 will be, then correction, where it uses the actual value from the source to correct its prediction.
-
 It requires 3 main parameters to be determined externally to use:
     A - The 'prediction matrix', which determines the predicted state of the system, this can
     usually be approximated as 1 for one-dimensional systems, or an identity matrix for higher order
@@ -13,37 +12,48 @@ It requires 3 main parameters to be determined externally to use:
     of how quickly the system responds to external input
     R - The covariance of the 'signal noise', this is static and is a measure of how
     much noise is expected in the system
-
 The remaining 3 inputs are variable, and change as the filter is used:
     z - The input from the source, usually a sensor
     x_prev - The previous output from the filter -- Usually initialised as zero
     P_prev - The previous value of the 'confidence' matrix, or the value of the corrected error
     covariance -- This can be initialised at anything EXCEPT zero, and will correct itself as it's used,
     better initial estimates will result in faster convergence
-
 NOTE: This is still being developed, and can still be vastly improved"""
 
 import math, cmath
 
-# ONE DIMENSIONAL Kalman filter implementation - this assumes all parameters are integers, not matrices
-def one_dim(z, x_prev, P_prev, A, Q, R):
-    # z - The new measured value from the sensor
-    # x_prev - The previous corrected measured value
-    # P_prev - The previous corrected value of the confidence
-    # A - Filter parameter
-    # Q - Process noise variance
-    # R - Signal noise variance
+class kalman1:
+    """ Class for a one dimensional Kalman Filter"""
+    def __init__(self, A, Q, R):
+        # A - Filter parameter
+        # Q - Process noise variance
+        # R - Signal noise variance
+        self._A = A
+        self._Q = Q
+        self._R = R
 
-    # Predict the next values
-    x_predicted = A * x_prev
-    P_predicted = A * P_prev + Q
+        # Initialise the filter variables
+        self._x = 0
+        self._P = 1 # Initial prediction matrix
 
-    # Correct the prediction using the measured value
-    K = P_predicted / (P_predicted + R)
-    x_corrected = x_predicted + K * (z - x_predicted)
-    P_corrected = (1 - K) * P_predicted
+    """ Function to add a new value to the filter"""
+    def update(self, z):
+        # z - The new measured value from the sensor
 
-    return (x_corrected, P_corrected)
+        # Predict the new variables for the new measurement
+        self._x = self._x * self._A
+        self._P = self._P * self._A + self._Q
+
+        # Correct the new prediction using the measured value
+        _K = self._P / (self._P + self._R)
+        self._x = self._x + _K * (z - self._x)
+        self._P = (1 - _K) * self._P
+
+        return self._x
+
+    """ Function to get the current value from the filter"""
+    def get(self):
+        return self._x
 
 # Example implementation
 if __name__ == '__main__':
@@ -54,6 +64,15 @@ if __name__ == '__main__':
     # Function to give a random noise variable
     def noise(mag):
         return mag * random.gauss(1, 1)
+
+    # Define the Kalman filter parameters
+    """ These must be determined beforehand """
+    A = 1.01
+    Q = 0.01 # Tends to be very small
+    R = 0.4 # Depends on the process being measured
+
+    # Initialise the filter
+    filter = kalman1(A, Q, R)
 
     # Create the dummy dataset
     N = 1024 # Number of samples
@@ -72,20 +91,13 @@ if __name__ == '__main__':
     # Start an empty list
     filtered = []
 
-    # Define the Kalman filter parameters
-    """ These must be determined beforehand """
-    A = 1.01
-    Q = 0.01 # Tends to be very small
-    R = 0.4 # Depends on the process being measured
-
-    # Initialise the variables
-    filtered_val = 0
-    filtered_P = 1
-
     # Filter each value of the noisy signal
     for y_val in y:
-        filtered_val, filtered_P = one_dim(y_val, filtered_val, filtered_P, A, Q, R)
-        filtered.append(filtered_val)
+        # Update the filter
+        filter.update(y_val)
+
+        # Get the new value
+        filtered.append(filter.get())
 
     # Plot the results
     plt.figure(1)
