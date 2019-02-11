@@ -18,7 +18,9 @@ The remaining 3 inputs are variable, and change as the filter is used:
     P_prev - The previous value of the 'confidence' matrix, or the value of the corrected error
     covariance -- This can be initialised at anything EXCEPT zero, and will correct itself as it's used,
     better initial estimates will result in faster convergence
-NOTE: This is still being developed, and can still be vastly improved"""
+NOTE: This is still being developed, and can still be vastly improved
+
+Author: Anders Appel, 2019"""
 
 import math, cmath
 
